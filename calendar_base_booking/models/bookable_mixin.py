@@ -161,6 +161,7 @@ class BookableMixin(models.AbstractModel):
 
     def _check_on_open_slot(self, start, stop):
         domain = self._get_domain_for_current_object()
+        domain = expression.AND([(domain, [("booking_type", "=", "bookable")])])
         domain = expression.AND(
             [
                 domain,
