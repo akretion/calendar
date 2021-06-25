@@ -25,7 +25,7 @@ class BookableMixin(models.AbstractModel):
         return self.slot_capacity
 
     def _get_booked_slot(self, start, stop):
-        domain = self._get_domain(start, stop)
+        domain = self._get_booking_domain(start, stop)
         return self.env["calendar.event"].search(
             expression.AND([domain, [("booking_type", "=", "booked")]])
         )
@@ -88,7 +88,7 @@ class BookableMixin(models.AbstractModel):
         """
         :return: all bookable slots
         """
-        domain = self._get_domain(start, stop)
+        domain = self._get_booking_domain(start, stop)
         domain = expression.AND([domain, [("booking_type", "=", "bookable")]])
         return self.env["calendar.event"].search(domain, order="start_date")
 
@@ -114,7 +114,7 @@ class BookableMixin(models.AbstractModel):
             ("res_id", "=", self.id),
         ]
 
-    def _get_domain(self, start, stop):
+    def _get_booking_domain(self, start, stop):
         domain = self._get_domain_for_current_object()
         return expression.AND(
             [
