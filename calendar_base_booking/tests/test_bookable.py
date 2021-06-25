@@ -15,10 +15,6 @@ CALENDAR = [
     ("2020-04-07 14:00:00", "2020-04-07 18:00:00"),
 ]
 
-# le get_bookable_slot est appeler sur quel object
-# warehouse, personne (coiffeur), matériel (ressource)
-# plusieurs chose en même temps? (intersection de calendrier ou // de calendrier)
-
 to_string = fields.Datetime.to_string
 
 

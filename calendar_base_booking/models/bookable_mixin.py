@@ -10,13 +10,6 @@ from odoo import _, fields, models
 from odoo.exceptions import UserError
 from odoo.osv import expression
 
-# Concept
-# open_slot is the range of time where the ressource can be book
-# available_slot is the range of time where the ressource is available for booking
-# booked_slot is a slot already booked
-# bookable_slot is a slot (with a size if slot_duration) that fit into
-# an available slot
-
 
 class BookableMixin(models.AbstractModel):
     _name = "bookable.mixin"
@@ -38,6 +31,9 @@ class BookableMixin(models.AbstractModel):
         )
 
     def _build_timeline_load(self, start, stop):
+        """
+        :return: list of tuples of format (datetime, load)
+        """
         timeline = defaultdict(int)
         timeline.update({start: 0, stop: 0})
         for booked_slot in self._get_booked_slot(start, stop):
@@ -72,12 +68,11 @@ class BookableMixin(models.AbstractModel):
         return slots
 
     def _prepare_bookable_slot(self, open_slot, start, stop):
-        # If need you can inject extra information from the open_slot
+        # If needed you can inject extra information from the open_slot
         return {"start": start, "stop": stop}
 
     def _build_bookable_slot(self, open_slot, start, stop):
         bookable_slots = []
-        # now we have to care about datetime vs string
         delta = self._get_slot_duration()
         while True:
             slot_stop = start + relativedelta(minutes=delta)
@@ -90,16 +85,23 @@ class BookableMixin(models.AbstractModel):
         return bookable_slots
 
     def get_open_slot(self, start, stop):
+        """
+        :return: all bookable slots
+        """
         domain = self._get_domain(start, stop)
         domain = expression.AND([domain, [("booking_type", "=", "bookable")]])
         return self.env["calendar.event"].search(domain, order="start_date")
 
     def get_bookable_slot(self, start, stop):
+        """
+        :return: bookable slots that are free (that are currently under capacity)
+        """
         start = fields.Datetime.to_datetime(start)
         stop = fields.Datetime.to_datetime(stop)
 
         slots = []
-        for open_slot in self.get_open_slot(start, stop):
+        openslots = self.get_open_slot(start, stop)
+        for open_slot in openslots:
             for slot_start, slot_stop in self._get_available_slot(
                 max(open_slot.start, start), min(open_slot.stop, stop)
             ):
@@ -113,15 +115,6 @@ class BookableMixin(models.AbstractModel):
         ]
 
     def _get_domain(self, start, stop):
-        # be carefull we need to search for every slot (bookable and booked)
-        # that exist in the range start/stop
-        # This mean that we need the slot
-        # - started before and finishing in the range
-        # - started and finished in the range
-        # - started in the range and fisnish after
-        # In an other expression it's
-        # - all slot that start in the range
-        # - all slot that finish in the range
         domain = self._get_domain_for_current_object()
         return expression.AND(
             [
