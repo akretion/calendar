@@ -4,6 +4,6 @@
 
   * get_open_slot (to determine opening hours)
 
-  * get_bookable_slot (to determine when a customer can make a booking)
+  * get_available_slot (to determine when a customer can make a booking)
 
   * book_slot (to book a time slot)

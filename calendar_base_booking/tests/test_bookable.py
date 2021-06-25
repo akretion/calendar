@@ -55,7 +55,7 @@ class TestBooking(SavepointCase, FakeModelLoader):
         return slots
 
     def _get_slot(self, start, stop):
-        return self._convert_to_string(self.partner.get_bookable_slot(start, stop))
+        return self._convert_to_string(self.partner.get_available_slots(start, stop))
 
     def _book_slot(self, start, stop):
         return self.partner.book_slot(

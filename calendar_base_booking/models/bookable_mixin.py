@@ -48,7 +48,7 @@ class BookableMixin(models.AbstractModel):
         timeline.sort()
         return timeline
 
-    def _get_available_slot(self, start, stop):
+    def _get_available_slots(self, start, stop):
         load_timeline = self._build_timeline_load(start, stop)
 
         load = 0
@@ -71,7 +71,7 @@ class BookableMixin(models.AbstractModel):
         # If needed you can inject extra information from the open_slot
         return {"start": start, "stop": stop}
 
-    def _build_bookable_slot(self, open_slot, start, stop):
+    def _build_available_slots(self, open_slot, start, stop):
         bookable_slots = []
         delta = self._get_slot_duration()
         while True:
@@ -84,7 +84,7 @@ class BookableMixin(models.AbstractModel):
             start += relativedelta(minutes=delta)
         return bookable_slots
 
-    def get_open_slot(self, start, stop):
+    def get_bookable_slots(self, start, stop):
         """
         :return: all bookable slots
         """
@@ -92,20 +92,21 @@ class BookableMixin(models.AbstractModel):
         domain = expression.AND([domain, [("booking_type", "=", "bookable")]])
         return self.env["calendar.event"].search(domain, order="start_date")
 
-    def get_bookable_slot(self, start, stop):
+    def get_available_slots(self, start, stop):
         """
-        :return: bookable slots that are free (that are currently under capacity)
+        :return: bookable slots that are available (that are currently under capacity)
         """
         start = fields.Datetime.to_datetime(start)
         stop = fields.Datetime.to_datetime(stop)
 
         slots = []
-        openslots = self.get_open_slot(start, stop)
-        for open_slot in openslots:
-            for slot_start, slot_stop in self._get_available_slot(
-                max(open_slot.start, start), min(open_slot.stop, stop)
+        for bookable_slot in self.get_bookable_slots(start, stop):
+            for slot_start, slot_stop in self._get_available_slots(
+                max(bookable_slot.start, start), min(bookable_slot.stop, stop)
             ):
-                slots += self._build_bookable_slot(open_slot, slot_start, slot_stop)
+                slots += self._build_available_slots(
+                    bookable_slot, slot_start, slot_stop
+                )
         return slots
 
     def _get_domain_for_current_object(self):
@@ -161,19 +162,19 @@ class BookableMixin(models.AbstractModel):
 
     def _check_on_open_slot(self, start, stop):
         domain = self._get_domain_for_current_object()
-        domain = expression.AND([(domain, [("booking_type", "=", "bookable")])])
         domain = expression.AND(
             [
                 domain,
                 [
                     ("start", "<=", start),
                     ("stop", ">=", stop),
+                    ("booking_type", "=", "bookable"),
                 ],
             ]
         )
         open_slot = self.env["calendar.event"].search(domain)
         if not open_slot:
-            raise UserError(_("The slot is not on a bookable zone"))
+            raise UserError(_("The slot is not inside a bookable period"))
 
     def book_slot(self, vals):
         self.ensure_one()
