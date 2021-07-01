@@ -10,6 +10,9 @@ from odoo import _, fields, models
 from odoo.exceptions import UserError
 from odoo.osv import expression
 
+DOMAIN_BOOKABLE = [("booking_type", "=", "bookable")]
+DOMAIN_BOOKED = [("booking_type", "=", "booked")]
+
 
 class BookableMixin(models.AbstractModel):
     _name = "bookable.mixin"
@@ -25,9 +28,14 @@ class BookableMixin(models.AbstractModel):
         return self.slot_capacity
 
     def _get_booked_slot(self, start, stop):
-        domain = self._get_booking_domain(start, stop)
         return self.env["calendar.event"].search(
-            expression.AND([domain, [("booking_type", "=", "booked")]])
+            expression.AND(
+                [
+                    self._get_domain_slots_between(start, stop),
+                    self._get_domain_current_object(),
+                    DOMAIN_BOOKED,
+                ]
+            )
         )
 
     def _build_timeline_load(self, start, stop):
@@ -88,8 +96,13 @@ class BookableMixin(models.AbstractModel):
         """
         :return: all bookable slots
         """
-        domain = self._get_booking_domain(start, stop)
-        domain = expression.AND([domain, [("booking_type", "=", "bookable")]])
+        domain = expression.AND(
+            [
+                self._get_domain_slots_between(start, stop),
+                self._get_domain_current_object(),
+                DOMAIN_BOOKABLE,
+            ]
+        )
         return self.env["calendar.event"].search(domain, order="start_date")
 
     def get_available_slots(self, start, stop):
@@ -109,28 +122,22 @@ class BookableMixin(models.AbstractModel):
                 )
         return slots
 
-    def _get_domain_for_current_object(self):
+    def _get_domain_current_object(self):
         return [
             ("res_model", "=", self._name),
             ("res_id", "=", self.id),
         ]
 
-    def _get_booking_domain(self, start, stop):
-        domain = self._get_domain_for_current_object()
-        return expression.AND(
-            [
-                domain,
-                [
-                    "|",
-                    "&",
-                    ("start", ">=", start),
-                    ("start", "<", stop),
-                    "&",
-                    ("stop", ">", start),
-                    ("stop", "<=", stop),
-                ],
-            ]
-        )
+    def _get_domain_slots_between(self, start, stop):
+        return [
+            "|",
+            "&",
+            ("start", ">=", start),
+            ("start", "<", stop),
+            "&",
+            ("stop", ">", start),
+            ("stop", "<=", stop),
+        ]
 
     def _check_load(self, start, stop):
         load_timeline = self._build_timeline_load(start, stop)
@@ -155,21 +162,20 @@ class BookableMixin(models.AbstractModel):
         )
         return vals
 
-    def _check_duration(self, start, stop):
+    def _check_slot_duration(self, start, stop):
         duration = (stop - start).total_seconds() / 60.0
         if duration != self._get_slot_duration():
             raise UserError(_("The slot duration is not valid"))
 
     def _check_on_open_slot(self, start, stop):
-        domain = self._get_domain_for_current_object()
         domain = expression.AND(
             [
-                domain,
+                self._get_domain_current_object(),
                 [
                     ("start", "<=", start),
                     ("stop", ">=", stop),
-                    ("booking_type", "=", "bookable"),
                 ],
+                DOMAIN_BOOKABLE,
             ]
         )
         open_slot = self.env["calendar.event"].search(domain)
@@ -180,7 +186,7 @@ class BookableMixin(models.AbstractModel):
         self.ensure_one()
         vals = self._prepare_booked_slot(vals)
         self._check_on_open_slot(vals["start"], vals["stop"])
-        self._check_duration(vals["start"], vals["stop"])
+        self._check_slot_duration(vals["start"], vals["stop"])
         slot = self.env["calendar.event"].create(vals)
         self._check_load(vals["start"], vals["stop"])
         return slot
