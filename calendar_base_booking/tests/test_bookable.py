@@ -15,10 +15,6 @@ CALENDAR = [
     ("2020-04-07 14:00:00", "2020-04-07 18:00:00"),
 ]
 
-# le get_bookable_slot est appeler sur quel object
-# warehouse, personne (coiffeur), matériel (ressource)
-# plusieurs chose en même temps? (intersection de calendrier ou // de calendrier)
-
 to_string = fields.Datetime.to_string
 
 
@@ -59,7 +55,7 @@ class TestBooking(SavepointCase, FakeModelLoader):
         return slots
 
     def _get_slot(self, start, stop):
-        return self._convert_to_string(self.partner.get_bookable_slot(start, stop))
+        return self._convert_to_string(self.partner.get_available_slots(start, stop))
 
     def _book_slot(self, start, stop):
         return self.partner.book_slot(
