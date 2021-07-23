@@ -32,7 +32,7 @@ class BookableMixin(models.AbstractModel):
             expression.AND(
                 [
                     self._get_domain_slots_between(start, stop),
-                    self._get_domain_current_object(),
+                    self._get_slot_domain_current_object(),
                     DOMAIN_BOOKED,
                 ]
             )
@@ -99,7 +99,7 @@ class BookableMixin(models.AbstractModel):
         domain = expression.AND(
             [
                 self._get_domain_slots_between(start, stop),
-                self._get_domain_current_object(),
+                self._get_slot_domain_current_object(),
                 DOMAIN_BOOKABLE,
             ]
         )
@@ -122,7 +122,7 @@ class BookableMixin(models.AbstractModel):
                 )
         return slots
 
-    def _get_domain_current_object(self):
+    def _get_slot_domain_current_object(self):
         return [
             ("res_model", "=", self._name),
             ("res_id", "=", self.id),
@@ -170,7 +170,7 @@ class BookableMixin(models.AbstractModel):
     def _check_on_open_slot(self, start, stop):
         domain = expression.AND(
             [
-                self._get_domain_current_object(),
+                self._get_slot_domain_current_object(),
                 [
                     ("start", "<=", start),
                     ("stop", ">=", stop),

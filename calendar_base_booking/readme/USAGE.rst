@@ -2,7 +2,7 @@
 
 2. Use the three functions to manage bookings:
 
-  * get_open_slot (to determine opening hours)
+  * get_bookable_slot (to determine opening hours)
 
   * get_available_slot (to determine when a customer can make a booking)
 
