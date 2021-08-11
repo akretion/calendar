@@ -151,7 +151,7 @@ class TestBooking(SavepointCase, FakeModelLoader):
     def test_book_on_close_slot(self):
         with self.assertRaises(UserError) as err:
             self._book_slot("2020-04-06 07:00:00", "2020-04-06 08:30:00")
-        self.assertEqual("The slot is not on a bookable zone", err.exception.name)
+        self.assertEqual("The slot is not inside a bookable period", err.exception.name)
 
     def test_book_invalid_slot_duration(self):
         with self.assertRaises(UserError) as err:
