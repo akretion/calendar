@@ -27,24 +27,13 @@ class BookableMixin(models.AbstractModel):
     def _get_slot_capacity(self):
         return self.slot_capacity
 
-    def _get_booked_slot(self, start, stop):
-        return self.env["calendar.event"].search(
-            expression.AND(
-                [
-                    self._get_domain_slots_between(start, stop),
-                    self._get_slot_domain_current_object(),
-                    DOMAIN_BOOKED,
-                ]
-            )
-        )
-
     def _build_timeline_load(self, start, stop):
         """
         :return: list of tuples of format (datetime, load)
         """
         timeline = defaultdict(int)
         timeline.update({start: 0, stop: 0})
-        for booked_slot in self._get_booked_slot(start, stop):
+        for booked_slot in self.get_booked_slots(start, stop):
             if booked_slot.start < start:
                 timeline[start] += 1
             else:
@@ -121,6 +110,27 @@ class BookableMixin(models.AbstractModel):
                     bookable_slot, slot_start, slot_stop
                 )
         return slots
+
+    def get_booked_slots(self, start=None, stop=None):
+        if start and stop:
+            return self.env["calendar.event"].search(
+                expression.AND(
+                    [
+                        self._get_domain_slots_between(start, stop),
+                        self._get_slot_domain_current_object(),
+                        DOMAIN_BOOKED,
+                    ]
+                )
+            )
+        else:
+            return self.env["calendar.event"].search(
+                expression.AND(
+                    [
+                        self._get_slot_domain_current_object(),
+                        DOMAIN_BOOKED,
+                    ]
+                )
+            )
 
     def _get_slot_domain_current_object(self):
         return [
