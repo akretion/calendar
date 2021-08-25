@@ -13,7 +13,8 @@ class CalendarEvent(models.Model):
             ("bookable", "Bookable"),
             ("not_bookable", "Not bookable"),
             ("booked", "Booked"),
-        ]
+        ],
+        default="not_bookable",
     )
 
     @api.onchange("booking_type")

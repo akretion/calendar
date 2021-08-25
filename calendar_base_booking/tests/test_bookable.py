@@ -15,10 +15,6 @@ CALENDAR = [
     ("2020-04-07 14:00:00", "2020-04-07 18:00:00"),
 ]
 
-# le get_bookable_slot est appeler sur quel object
-# warehouse, personne (coiffeur), matériel (ressource)
-# plusieurs chose en même temps? (intersection de calendrier ou // de calendrier)
-
 to_string = fields.Datetime.to_string
 
 
@@ -59,7 +55,7 @@ class TestBooking(SavepointCase, FakeModelLoader):
         return slots
 
     def _get_slot(self, start, stop):
-        return self._convert_to_string(self.partner.get_bookable_slot(start, stop))
+        return self._convert_to_string(self.partner.get_available_slots(start, stop))
 
     def _book_slot(self, start, stop):
         return self.partner.book_slot(
@@ -155,7 +151,7 @@ class TestBooking(SavepointCase, FakeModelLoader):
     def test_book_on_close_slot(self):
         with self.assertRaises(UserError) as err:
             self._book_slot("2020-04-06 07:00:00", "2020-04-06 08:30:00")
-        self.assertEqual("The slot is not on a bookable zone", err.exception.name)
+        self.assertEqual("The slot is not inside a bookable period", err.exception.name)
 
     def test_book_invalid_slot_duration(self):
         with self.assertRaises(UserError) as err:
